@@ -24,6 +24,8 @@ function roc.curve(responses, labels)
 
    	while i<nsamples do
 		local split = responses_sorted[i]
+		-- if samples have exactly the same response, can't distinguish
+		-- between them with a threshold in the middle
 		while i <= nsamples and responses_sorted[i] == split do
 			if labels_sorted[i] == -1 then
 				true_negatives = true_negatives + 1
@@ -39,7 +41,9 @@ function roc.curve(responses, labels)
 		npoints = npoints + 1
 		local false_positives = nnegatives - true_negatives
 		local true_positives = npositives - false_negatives 
-		roc_points[npoints] = { 1.0*false_positives/nnegatives, 1.0*true_positives/npositives}
+		local false_positive_rate = 1.0*false_positives/nnegatives
+		local true_positive_rate = 1.0*true_positives/npositives
+		roc_points[npoints] = { false_positive_rate, true_positive_rate }
    	end
 
    	npoints = npoints + 1
@@ -61,8 +65,9 @@ function roc.area(roc_points)
 	local npoints = roc_points:size()[1]
 
 	for i=1,npoints-1 do
-		local trapezoid_area = (roc_points[i+1][1] - roc_points[i][1])*(roc_points[i][2]+roc_points[i+1][2])/2.0
-		area = area + trapezoid_area
+		local width = (roc_points[i+1][1] - roc_points[i][1])
+		local avg_height = (roc_points[i][2]+roc_points[i+1][2])/2.0
+		area = area + width*avg_height
 	end
 
 	return area
