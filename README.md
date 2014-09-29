@@ -26,8 +26,8 @@ gfx.chart(roc_points)
 
 ```
 
-![](https://raw.github.com/hpenedones/metrics/master/img/roc_1.png)
+![](https://raw.githubusercontent.com/hpenedones/metrics/master/img/roc1.png)
 
-#### Confusion matrix
+#### Confusion matrix (TODO)
 
 Used to evaluate performance of multi-class classifiers.
