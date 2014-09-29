@@ -1,5 +1,27 @@
 local roc = {}
 
+-- auxiliary method that quickly simulates the ROC curve computation 
+-- just to estimate how many points the curve will have,
+-- in order to later allocate just that much memory
+local function determine_roc_points_needed(responses_sorted, labels_sorted)
+   	local npoints = 1
+   	local i = 1
+   	local nsamples = responses_sorted:size()[1]
+
+   	while i<nsamples do
+		local split = responses_sorted[i]
+		while i <= nsamples and responses_sorted[i] == split do
+			i = i+1
+		end
+		while i <= nsamples and labels_sorted[i] == -1 do
+			i = i+1	
+		end
+		npoints = npoints + 1
+   	end
+   	return npoints + 2
+end
+
+
 function roc.curve(responses, labels)
 
 	-- put assertions here
@@ -13,9 +35,14 @@ function roc.curve(responses, labels)
    	local responses_sorted, indexes_sorted = torch.sort(responses)
    	local labels_sorted = labels:index(1, indexes_sorted)
 
-
-   	local roc_points = {}
-   	roc_points[1] = {1.0, 1.0}
+   	-- one could allocate a lua table and grow its size dynamically
+   	-- and at the end convert to torch tensor, but here I am chosing
+   	-- to allocate only the exact memory needed, and doing two passes 
+   	-- over the data to estimate first how many points will need
+  	local roc_num_points = determine_roc_points_needed(responses_sorted, labels_sorted)
+   	local roc_points = torch.Tensor(roc_num_points, 2)
+   	
+   	roc_points[1][1], roc_points[1][2] = 0.0, 0.0
 
    	local npoints = 1
 	local true_negatives = 0
@@ -43,19 +70,13 @@ function roc.curve(responses, labels)
 		local true_positives = npositives - false_negatives 
 		local false_positive_rate = 1.0*false_positives/nnegatives
 		local true_positive_rate = 1.0*true_positives/npositives
-		roc_points[npoints] = { false_positive_rate, true_positive_rate }
+		roc_points[roc_num_points - npoints + 1][1] = false_positive_rate
+		roc_points[roc_num_points - npoints + 1][2] = true_positive_rate
    	end
 
-   	npoints = npoints + 1
-   	roc_points[npoints] = {0.0, 0.0}
+   	roc_points[roc_num_points][1], roc_points[roc_num_points][2]  = 1.0, 1.0
 
-   	local roc_tensor2d = torch.Tensor(npoints, 2)
-   	for i=1,npoints do
-   		roc_tensor2d[i][1] = roc_points[npoints-i+1][1]
-   		roc_tensor2d[i][2] = roc_points[npoints-i+1][2]
-   	end
-
-   	return roc_tensor2d
+   	return roc_points
 end
 
 
