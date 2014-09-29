@@ -1,4 +1,4 @@
-local roc = {}
+local ROC = {}
 
 -- auxiliary method that quickly simulates the ROC curve computation 
 -- just to estimate how many points the curve will have,
@@ -22,7 +22,7 @@ local function determine_roc_points_needed(responses_sorted, labels_sorted)
 end
 
 
-function roc.curve(responses, labels)
+function ROC.points(responses, labels)
 
 	-- put assertions here
 
@@ -80,7 +80,7 @@ function roc.curve(responses, labels)
 end
 
 
-function roc.area(roc_points)
+function ROC.area(roc_points)
 
 	local area = 0.0 
 	local npoints = roc_points:size()[1]
@@ -95,4 +95,4 @@ function roc.area(roc_points)
 end
 
    
-return roc
+return ROC
