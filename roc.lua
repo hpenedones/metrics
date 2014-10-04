@@ -24,13 +24,17 @@ end
 
 function ROC.points(responses, labels)
 
-	-- put assertions here
+	-- assertions about the data format expected
+	assert(responses:size():size() == 1, "responses should be a 1D vector")
+	assert(labels:size():size() == 1 , "labels should be a 1D vector")
 
    	-- assuming labels {-1, 1}
    	local npositives = torch.sum(torch.eq(labels,  1))
    	local nnegatives = torch.sum(torch.eq(labels, -1))
    	local nsamples = npositives + nnegatives
 
+   	assert(nsamples == responses:size()[1], "labels should contain only -1 or 1 values")
+   	
    	-- sort by response value
    	local responses_sorted, indexes_sorted = torch.sort(responses)
    	local labels_sorted = labels:index(1, indexes_sorted)
