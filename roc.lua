@@ -1,28 +1,77 @@
-local ROC = {}
+local roc = {}
 
--- auxiliary method that quickly simulates the ROC curve computation 
--- just to estimate how many points the curve will have,
--- in order to later allocate just that much memory
-local function determine_roc_points_needed(responses_sorted, labels_sorted)
-   	local npoints = 1
-   	local i = 1
-   	local nsamples = responses_sorted:size()[1]
 
-   	while i<nsamples do
-		local split = responses_sorted[i]
-		while i <= nsamples and responses_sorted[i] == split do
+function roc.splits(responses, labels)
+  	
+   	local nsamples = responses:size()[1]
+   
+   	-- sort by response value
+   	local responses_sorted, indexes_sorted = torch.sort(responses)
+   	local labels_sorted = labels:index(1, indexes_sorted)
+
+	local true_negatives = 0
+	local false_negatives = 0   	
+
+   	local epsilon = 0.01
+
+	-- a threshold divides the data as follows:
+   	-- 	if response[i] <= threshold: classify sample[i] as belonging to the negative class
+   	-- 	if response[i] > threshold:  classify sample[i] as belonging to the positive class 
+
+	-- Base case, where the threshold is a bit lower than the minimum response for any sample.
+	-- Here, all samples are classified as belonging to the positive class, therefore we have
+	-- zero true negatives and zero false negatives (all are either true positives or false positives)
+	local threshold = responses[1]-epsilon
+	local splits = {}
+
+	-- we are going to start moving through the samples and increasing the threshold
+   	local i = 0
+   	while i<=nsamples do
+		-- if a set of samples have *exactly* this response, we can't distinguish between them.
+		-- Therefore, all samples with that response will be classified as negatives (since response == threshold)
+		-- and depending on their true label, we need to increase either the TN or the FN counters
+		while i+1 <= nsamples and responses_sorted[i+1] == threshold do
+			if labels_sorted[i+1] == -1 then
+				true_negatives = true_negatives + 1
+			else
+				false_negatives = false_negatives + 1
+			end
 			i = i+1
 		end
-		while i <= nsamples and labels_sorted[i] == -1 do
-			i = i+1	
+		-- now that we dealt with the "degenerate" situation of having multiple samples with exactly the same response
+		-- coinciding with the current threshold, lets store this threshold and the current TN and FN
+		splits[#splits+1] = {threshold = threshold, true_negatives = true_negatives, false_negatives = false_negatives}	
+
+		-- We can now move on
+		i = i + 1
+		if i<=nsamples and labels_sorted[i] == 1 then
+			false_negatives = false_negatives + 1
+		else
+			true_negatives = true_negatives + 1
+			-- while we see only negative examples we can keep increasing the threshold, because there is no point in picking 
+			-- a threshold if we can pick a higher one that will increase the amount of true negatives (therefore decreasing the 
+			-- false positives), without causing any additional false negative. 
+			while i+1 <= nsamples and labels_sorted[i+1] == -1 do
+				true_negatives = true_negatives + 1
+				i = i+1	
+			end
 		end
-		npoints = npoints + 1
+		
+		-- new "interesting" threshold  
+		if i<=nsamples then
+			threshold = responses_sorted[i]
+		end
    	end
-   	return npoints + 2
+
+   	-- we are now done, lets return the table with all the tuples of {thresholds, true negatives, false negatives}
+   	-- {{threshold_1, TN_1, FN_1},   ... , {threshold_k, TN_k, FP_k}}
+
+   	return splits
 end
 
 
-function ROC.points(responses, labels)
+
+function roc.points(responses, labels)
 
 	-- assertions about the data format expected
 	assert(responses:size():size() == 1, "responses should be a 1D vector")
@@ -34,57 +83,26 @@ function ROC.points(responses, labels)
    	local nsamples = npositives + nnegatives
 
    	assert(nsamples == responses:size()[1], "labels should contain only -1 or 1 values")
-   	
-   	-- sort by response value
-   	local responses_sorted, indexes_sorted = torch.sort(responses)
-   	local labels_sorted = labels:index(1, indexes_sorted)
 
-   	-- one could allocate a lua table and grow its size dynamically
-   	-- and at the end convert to torch tensor, but here I am chosing
-   	-- to allocate only the exact memory needed, and doing two passes 
-   	-- over the data to estimate first how many points will need
-  	local roc_num_points = determine_roc_points_needed(responses_sorted, labels_sorted)
-   	local roc_points = torch.Tensor(roc_num_points, 2)
-   	
-   	roc_points[1][1], roc_points[1][2] = 0.0, 0.0
+	local splits = roc.splits(responses, labels)
 
-   	local npoints = 1
-	local true_negatives = 0
-	local false_negatives = 0   	
-   	local i = 1
+   	local roc_points = torch.Tensor(#splits, 2)
+   	local thresholds = torch.Tensor(#splits, 1)
 
-   	while i<nsamples do
-		local split = responses_sorted[i]
-		-- if samples have exactly the same response, can't distinguish
-		-- between them with a threshold in the middle
-		while i <= nsamples and responses_sorted[i] == split do
-			if labels_sorted[i] == -1 then
-				true_negatives = true_negatives + 1
-			else
-				false_negatives = false_negatives + 1
-			end
-			i = i+1
-		end
-		while i <= nsamples and labels_sorted[i] == -1 do
-			true_negatives = true_negatives + 1
-			i = i+1	
-		end
-		npoints = npoints + 1
-		local false_positives = nnegatives - true_negatives
-		local true_positives = npositives - false_negatives 
+   	for i=1,#splits do
+   		local false_positives = nnegatives - splits[i].true_negatives
+		local true_positives = npositives - splits[i].false_negatives 
 		local false_positive_rate = 1.0*false_positives/nnegatives
 		local true_positive_rate = 1.0*true_positives/npositives
-		roc_points[roc_num_points - npoints + 1][1] = false_positive_rate
-		roc_points[roc_num_points - npoints + 1][2] = true_positive_rate
+		roc_points[#splits - i + 1][1] = false_positive_rate
+		roc_points[#splits - i + 1][2] = true_positive_rate	
+		thresholds[#splits - i + 1][1] = splits[i].threshold
    	end
 
-   	roc_points[roc_num_points][1], roc_points[roc_num_points][2]  = 1.0, 1.0
-
-   	return roc_points
+   	return roc_points, thresholds
 end
 
-
-function ROC.area(roc_points)
+function roc.area(roc_points)
 
 	local area = 0.0 
 	local npoints = roc_points:size()[1]
@@ -99,4 +117,4 @@ function ROC.area(roc_points)
 end
 
    
-return ROC
+return roc
