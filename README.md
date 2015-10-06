@@ -12,7 +12,7 @@ If you find any, please let me know and I will try to fix it.
 
 ```sh
 git clone https://github.com/hpenedones/metrics.git
-cd metric
+cd metrics
 luarocks make
 ```
 
