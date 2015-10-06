@@ -10,10 +10,11 @@ If you find any, please let me know and I will try to fix it.
 
 #### Installation:
 
+```sh
 git clone https://github.com/hpenedones/metrics.git
 cd metric
 luarocks make
-
+```
 
 #### Receiver Operator Curves (ROC)
 
