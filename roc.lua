@@ -1,7 +1,7 @@
 local roc = {}
 
 
-function roc.splits(responses, labels)
+function roc.splits(responses, labels, neglabel, poslabel)
   	
    	local nsamples = responses:size()[1]
    
@@ -31,7 +31,7 @@ function roc.splits(responses, labels)
 		-- Therefore, all samples with that response will be classified as negatives (since response == threshold)
 		-- and depending on their true label, we need to increase either the TN or the FN counters
 		while i+1 <= nsamples and responses_sorted[i+1] == threshold do
-			if labels_sorted[i+1] == -1 then
+			if labels_sorted[i+1] == neglabel then
 				true_negatives = true_negatives + 1
 			else
 				false_negatives = false_negatives + 1
@@ -44,14 +44,14 @@ function roc.splits(responses, labels)
 
 		-- We can now move on
 		i = i + 1
-		if i<=nsamples and labels_sorted[i] == 1 then
+		if i<=nsamples and labels_sorted[i] == poslabel then
 			false_negatives = false_negatives + 1
 		else
 			true_negatives = true_negatives + 1
 			-- while we see only negative examples we can keep increasing the threshold, because there is no point in picking 
 			-- a threshold if we can pick a higher one that will increase the amount of true negatives (therefore decreasing the 
 			-- false positives), without causing any additional false negative. 
-			while i+1 <= nsamples and labels_sorted[i+1] == -1 do
+			while i+1 <= nsamples and labels_sorted[i+1] == neglabel do
 				true_negatives = true_negatives + 1
 				i = i+1	
 			end
@@ -71,20 +71,28 @@ end
 
 
 
-function roc.points(responses, labels)
+function roc.points(responses, labels, neglabel, poslabel)
+
+        -- default values for arguments
+        poslabel = poslabel or +1
+        neglabel = neglabel or -1
 
 	-- assertions about the data format expected
 	assert(responses:size():size() == 1, "responses should be a 1D vector")
 	assert(labels:size():size() == 1 , "labels should be a 1D vector")
 
-   	-- assuming labels {-1, 1}
-   	local npositives = torch.sum(torch.eq(labels,  1))
-   	local nnegatives = torch.sum(torch.eq(labels, -1))
-   	local nsamples = npositives + nnegatives
+	-- avoid degenerate class definitions
+	assert(poslabel ~= neglabel, "positive and negative class can't have the same label")
 
-   	assert(nsamples == responses:size()[1], "labels should contain only -1 or 1 values")
+	-- assuming labels { neglabel, poslabel }
+	local npositives = torch.sum(torch.eq(labels, poslabel))
+	local nnegatives = torch.sum(torch.eq(labels, neglabel))
+	local nsamples = npositives + nnegatives
 
-	local splits = roc.splits(responses, labels)
+	assert(nsamples == responses:size()[1], "labels should contain only " .. neglabel .. " or " .. poslabel .. " values")
+	assert(nsamples == weights:size()[1],   "weights should have the same length as respones and labels")
+
+	local splits = roc.splits(responses, labels, neglabel, poslabel)
 
    	local roc_points = torch.Tensor(#splits, 2)
    	local thresholds = torch.Tensor(#splits, 1)
