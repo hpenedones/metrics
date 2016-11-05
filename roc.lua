@@ -74,7 +74,7 @@ end
 function roc.points(responses, labels, neglabel, poslabel)
 
         -- default values for arguments
-        poslabel = poslabel or +1
+        poslabel = poslabel or 1
         neglabel = neglabel or -1
 
 	-- assertions about the data format expected
