@@ -74,7 +74,7 @@ end
 function roc.points(responses, labels, neglabel, poslabel)
 
         -- default values for arguments
-        poslabel = poslabel or +1
+        poslabel = poslabel or 1
         neglabel = neglabel or -1
 
 	-- assertions about the data format expected
@@ -90,7 +90,6 @@ function roc.points(responses, labels, neglabel, poslabel)
 	local nsamples = npositives + nnegatives
 
 	assert(nsamples == responses:size()[1], "labels should contain only " .. neglabel .. " or " .. poslabel .. " values")
-	assert(nsamples == weights:size()[1],   "weights should have the same length as respones and labels")
 
 	local splits = roc.splits(responses, labels, neglabel, poslabel)
 
