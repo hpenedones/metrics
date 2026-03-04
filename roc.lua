@@ -21,7 +21,7 @@ function roc.splits(responses, labels, neglabel, poslabel)
 	-- Base case, where the threshold is a bit lower than the minimum response for any sample.
 	-- Here, all samples are classified as belonging to the positive class, therefore we have
 	-- zero true negatives and zero false negatives (all are either true positives or false positives)
-	local threshold = responses[1]-epsilon
+	local threshold = responses_sorted[1]-epsilon
 	local splits = {}
 
 	-- we are going to start moving through the samples and increasing the threshold
@@ -64,7 +64,7 @@ function roc.splits(responses, labels, neglabel, poslabel)
    	end
 
    	-- we are now done, lets return the table with all the tuples of {thresholds, true negatives, false negatives}
-   	-- {{threshold_1, TN_1, FN_1},   ... , {threshold_k, TN_k, FP_k}}
+   	-- {{threshold_1, TN_1, FN_1},   ... , {threshold_k, TN_k, FN_k}}
 
    	return splits
 end
