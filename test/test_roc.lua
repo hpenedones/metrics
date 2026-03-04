@@ -13,9 +13,10 @@ local roc = require("roc")
 
 local num_passed = 0
 local num_failed = 0
+local DEFAULT_TOL = 1e-9
 
 local function approx_equal(a, b, tol)
-   tol = tol or 1e-9
+   tol = tol or DEFAULT_TOL
    return math.abs(a - b) <= tol
 end
 
@@ -195,7 +196,7 @@ do
 
    local monotonic = true
    for i = 1, npoints - 1 do
-      if roc_points[i + 1][1] < roc_points[i][1] - 1e-12 then
+      if roc_points[i + 1][1] < roc_points[i][1] - DEFAULT_TOL then
          monotonic = false
          break
       end
@@ -230,7 +231,7 @@ do
    local n = thresholds:size()[1]
    local ordered = true
    for i = 1, n - 1 do
-      if thresholds[i + 1][1] > thresholds[i][1] + 1e-12 then
+      if thresholds[i + 1][1] > thresholds[i][1] + DEFAULT_TOL then
          ordered = false
          break
       end
