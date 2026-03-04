@@ -1,7 +1,7 @@
 require 'torch'
 
-local metrics_package = {}
+local torch_roc_package = {}
 
-metrics_package.roc = require 'metrics.roc'
+torch_roc_package.roc = require 'torch_roc.roc'
 
-return metrics_package
+return torch_roc_package

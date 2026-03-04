@@ -1,17 +1,17 @@
-package = "metrics"
+package = "torch_roc"
 version = "scm-0"
 
 source = {
-   url = "git://github.com/hpenedones/metrics",
+   url = "git://github.com/hpenedones/torch_roc",
    tag = "master"
 }
 
 description = {
-   summary = "A metrics package for Torch",
+   summary = "A ROC curves package for Torch",
    detailed = [[
-   	    Computes ROC curves, confusion matrix, etc.
+   	    Computes ROC curves for binary classifiers.
    ]],
-   homepage = "https://github.com/hpenedones/metrics"
+   homepage = "https://github.com/hpenedones/torch_roc"
 }
 
 dependencies = {
